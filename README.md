@@ -30,7 +30,10 @@ Now on a VIC-20 load the program:
 
 The screen should show:
 
-    TESTING...PASS
+    TESTING
+    MEMCPY...PASS
+    MUL......PASS
+    NEGATE...PASS
 
 
 # Licence
