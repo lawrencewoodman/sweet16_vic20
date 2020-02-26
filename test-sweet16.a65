@@ -1,0 +1,279 @@
+;=====================================================
+; Test for Sweet16
+; Lawrence Woodman <lwoodman@vlifesystems.com>
+; 12 February 2020
+;-----------------------------------------------------
+; These tests are designed to demonstrate Sweet 16
+; rather than exhaustively test it.
+;=====================================================
+
+PMSG    =    $29            ; Pointer to output message
+                            ; Ensure doesn't clash with Sweet 16
+                            ; registers location
+TNDX    =    $39            ; TESTS index
+
+CHR_RTN =    $0D            ; Return character
+CCHROUT =    $FFD2          ; Output character to current output device
+
+LADDR   =    $1288          ; $1288 should work for any memory configuration
+                            ; Calculate so that code highlighted in
+                            ; sweet16.a65 fits into a single page
+
+CPASS   =    $FF            ; PASS Code
+CFAIL   =    $00            ; FAIL Code
+
+        .word LADDR         ; Load Address.
+        *=   LADDR
+
+        jsr  RUNTESTS       ; Run tests
+        rts
+
+; Include the Sweet 16 pseudo machine interpreter
+#include "sweet16.a65"
+
+TESTS   .word SMEMCPY   : .word TMEMCPY
+        .word SMUL      : .word TMUL
+        .word SNEGATE   : .word TNEGATE
+        .word $00           ; End of tests
+
+
+        ;------------------------
+        ; Run each test in TESTS
+        ;------------------------
+RUNTESTS .(
+        ; Output TESTING
+        lda  #<STESTING
+        sta  PMSG
+        lda  #>STESTING
+        sta  PMSG+1
+        jsr  PRNTMSG
+
+        ; Run each test in turn
+        lda  #<TESTS
+        sta  TNDX
+        lda  #>TESTS
+        sta  TNDX+1
+        ldy  #$00
+
+LOOP    lda  (TNDX),Y
+        beq  DONE           ; End of tests indicated by $00
+        sta  ONAME+1
+        iny
+        lda  (TNDX),Y
+        sta  ONAME+5
+        iny
+
+        lda  (TNDX),Y
+        sta  JTEST+1
+        iny
+        lda  (TNDX),Y
+        sta  JTEST+2
+        iny
+
+        tya                 ; Save Y
+        pha
+
+        ; Output TESTNAME...
+        ; Test name string entered via loop above
+ONAME   lda  #$FF
+        sta  PMSG
+        lda  #$FF
+        sta  PMSG+1
+        jsr  PRNTMSG
+
+        ; Run test and output result
+        ; Test address entered via loop above
+JTEST   jsr  $FFFF
+        jsr  PRNTRESULT
+
+        pla                 ; Restore Y
+        tay
+        jmp  LOOP
+
+DONE    rts
+.)
+
+
+        ;-------------------------------------------------
+        ; Memory copy test
+        ; Uses Sweet 16 code to copy some memory from one
+        ; location to another
+        ;-------------------------------------------------
+TMEMCPY .(
+TDST    = $02BC                   ; Destination for memory copy
+TLEN    = $0005                   ; Length of memory to copy
+
+        ; Setup
+        ; Zero destination
+        ldy  #<TLEN
+        lda  #$00
+CLOOP   sta  TDST-1, Y
+        dey
+        bne  CLOOP
+
+        ; Run Sweet 16 code
+        jsr  SW16                 ; Execute following Sweet 16 code
+        .byt $11, <HELLO, >HELLO  ; SET  R1   Source Address
+        .byt $12, <TDST, >TDST    ; SET  R2   Destination Address
+        .byt $13, <TLEN, >TLEN    ; SET  R3   Length
+        .byt $41                  ; LD   @R1
+        .byt $52                  ; ST   @R2
+        .byt $F3                  ; DCR  R3
+        .byt $07, $FB             ; BNZ  -4
+        .byt $00                  ; RTN
+
+        ; Assess whether test passed
+        ; Checks whether destination contains HELLO
+        ldy  #<TLEN
+ALOOP   lda  HELLO-1,Y
+        cmp  TDST-1, Y
+        bne  FAIL
+        dey
+        bne  ALOOP
+
+        lda  #CPASS               ; PASS
+        rts
+
+FAIL    lda  #CFAIL               ; FAIL
+        rts
+.)
+
+
+        ;-------------------------------------------------
+        ; Multiply test
+        ; Uses Sweet 16 code to calculate 255x100
+        ;-------------------------------------------------
+TMUL    .(
+X       = 255
+Y       = 100
+WANT    = $639C
+
+        ; Run Sweet 16 code
+        jsr  SW16                 ; Execute following Sweet 16 code
+        .byt $10 : .word 0000     ; SET  R0   sum
+        .byt $11 : .word X        ; SET  R1   x
+        .byt $12 : .word Y        ; SET  R2   y
+        .byt $13 : .word RESULT   ; SET  R3   result
+        .byt $F2                  ; DCR  R2
+        .byt $05, 3               ; BM 3
+        .byt $A1                  ; ADD  R1
+        .byt $01, $FA             ; BR   -5
+        .byt $73                  ; STD  @R3
+        .byt $00                  ; RTN
+
+
+        ; Assess whether test passed
+        lda  RESULT
+        cmp  #<WANT
+        bne  FAIL
+        lda  RESULT+1
+        cmp  #>WANT
+        bne  FAIL
+
+        lda  #CPASS               ; PASS
+        rts
+
+FAIL    lda  #CFAIL               ; FAIL
+        rts
+
+RESULT  .word $0000               ; The result of the multiplication
+.)
+
+
+        ;-----------------------------------------------------
+        ; Negate (two's complement) test
+        ; Sweet 16 code loads a value to be negated, it
+        ; switches to 6502 code to call a routine to one's
+        ; complement the value and then goes back to Sweet 16
+        ; to add one to the value.
+        ;-----------------------------------------------------
+TNEGATE .(
+A       = $0010
+WANT    = $FFF0
+
+        ; Run Sweet 16 code
+        jsr  SW16                 ; Execute following Sweet 16 code
+        .byt $11 : .word A        ; SET  R1   a
+        .byt $13 : .word RESULT   ; SET  R3   result
+        .byt $21                  ; LD   R1
+        .byt $73                  ; STD  @R3
+        .byt $00                  ; RTN
+        jsr  NOTRES               ; One's complement RESULT
+        jsr  SW16                 ; Continue executing Sweet 16 code
+        .byt $C3                  ; POPD @R3
+        .byt $E0                  ; INR  R0
+        .byt $73                  ; STD  @R3
+        .byt $00                  ; RTN
+
+        ; Assess whether test passed
+        lda  RESULT
+        cmp  #<WANT
+        bne  FAIL
+        lda  RESULT+1
+        cmp  #>WANT
+        bne  FAIL
+
+        lda  #CPASS               ; PASS
+        rts
+
+FAIL    lda  #CFAIL               ; FAIL
+        rts
+
+        ; One's complement RESULT
+NOTRES  lda  RESULT
+        eor  #$FF
+        sta  RESULT
+        lda  RESULT+1
+        eor  #$FF
+        sta  RESULT+1
+        rts
+
+RESULT  .word $0000               ; The result of the operation
+.)
+
+
+        ;-----------------------------------
+        ; Output message pointed to by PMSG
+        ;-----------------------------------
+PRNTMSG  .(
+        ; Output message
+        ldy  #$00
+LOOP    lda  (PMSG), y
+        beq  DONE
+        jsr  CCHROUT        ; Output char to screen
+        iny
+        bne  LOOP
+DONE    rts
+.)
+
+
+        ;--------------------------------------
+        ; Output PASS or FAIL depending on Acc
+        ;--------------------------------------
+PRNTRESULT .(
+        cmp  #CPASS
+        bne  FAIL
+
+        ; Output PASS
+        lda  #<SPASS
+        sta  PMSG
+        lda  #>SPASS
+        sta  PMSG+1
+        jmp  PRNTMSG
+
+FAIL     ; Output FAIL
+        lda  #<SFAIL
+        sta  PMSG
+        lda  #>SFAIL
+        sta  PMSG+1
+        jmp  PRNTMSG
+.)
+
+
+HELLO      .asc "HELLO"
+STESTING   .byt CHR_RTN : .asc "TESTING" : .byt CHR_RTN, $00
+SMEMCPY    .asc "MEMCPY..." : .byt $00
+SMUL       .asc "MUL......" : .byt $00
+SNEGATE    .asc "NEGATE..." : .byt $00
+SPASS      .asc "PASS" : .byt CHR_RTN, $00
+SFAIL      .asc "FAIL" : .byt CHR_RTN, $00

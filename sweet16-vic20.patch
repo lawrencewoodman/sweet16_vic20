@@ -1,0 +1,277 @@
+--- sweet16-original.a65	2020-02-12 11:50:36.164822734 +0000
++++ sweet16.a65	2020-02-12 14:27:30.182887871 +0000
+@@ -1,32 +1,28 @@
+-********************************
+-*                              *
+-*   APPLE-II  PSEUDO MACHINE   *
+-*         INTERPRETER          *
+-*                              *
+-*      COPYRIGHT (C) 1977      *
+-*     APPLE COMPUTER,  INC     *
+-*                              *
+-*     ALL  RIGHTS RESERVED     *
+-*                              *
+-*         S. WOZNIAK           *
+-*                              *
+-********************************
+-*                              *
+-* TITLE:  SWEET 16 INTERPRETER *
+-*                              *
+-********************************
+-
+-R0L     EQU  $0
+-R0H     EQU  $1
+-R14H    EQU  $1D
+-R15L    EQU  $1E
+-R15H    EQU  $1F
+-SAVE    EQU  $FF4A
+-RESTORE EQU  $FF3F
++;********************************
++;*                              *
++;*   APPLE-II  PSEUDO MACHINE   *
++;*         INTERPRETER          *
++;*                              *
++;*      COPYRIGHT (C) 1977      *
++;*     APPLE COMPUTER,  INC     *
++;*                              *
++;*     ALL  RIGHTS RESERVED     *
++;*                              *
++;*         S. WOZNIAK           *
++;*                              *
++;********************************
++;*                              *
++;* TITLE   SWEET 16 INTERPRETER *
++;*                              *
++;********************************
+ 
+-        ORG  $F689
++SW16    .(
++R0L     =    $2B            ; The start of 32 bytes of storage in the zero
++R0H     =    R0L+1          ; page used for the registers.  However, this
++R14H    =    R0L+29         ; prevents Basic from working.
++R15L    =    R14H+1
++R15H    =    R15L+1
+ 
+-        AST  32
+ 
+         JSR  SAVE           ;PRESERVE 6502 REG CONTENTS
+         PLA
+@@ -38,11 +34,11 @@
+ SW16C   INC  R15L
+         BNE  SW16D          ;INCR SWEET16 PC FOR FETCH
+         INC  R15H
+-SW16D   LDA  >SET           ;COMMON HIGH BYTE FOR ALL ROUTINES
++SW16D   LDA  #>SET           ;COMMON HIGH BYTE FOR ALL ROUTINES
+         PHA                 ;PUSH ON STACK FOR RTS
+-        LDY  $0
++        LDY  #$00
+         LDA  (R15L),Y       ;FETCH INSTR
+-        AND  $F             ;MASK REG SPECIFICATION
++        AND  #$F            ;MASK REG SPECIFICATION
+         ASL                 ;DOUBLE FOR TWO BYTE REGISTERS
+         TAX                 ;TO X REG FOR INDEXING
+         LSR
+@@ -80,45 +76,45 @@
+         BCC  SET2
+         INC  R15H
+ SET2    RTS
+-OPTBL   DFB  SET-1          ;1X
+-BRTBL   DFB  RTN-1          ;0
+-        DFB  LD-1           ;2X
+-        DFB  BR-1           ;1
+-        DFB  ST-1           ;3X
+-        DFB  BNC-1          ;2
+-        DFB  LDAT-1         ;4X
+-        DFB  BC-1           ;3
+-        DFB  STAT-1         ;5X
+-        DFB  BP-1           ;4
+-        DFB  LDDAT-1        ;6X
+-        DFB  BM-1           ;5
+-        DFB  STDAT-1        ;7X
+-        DFB  BZ-1           ;6
+-        DFB  POP-1          ;8X
+-        DFB  BNZ-1          ;7
+-        DFB  STPAT-1        ;9X
+-        DFB  BM1-1          ;8
+-        DFB  ADD-1          ;AX
+-        DFB  BNM1-1         ;9
+-        DFB  SUB-1          ;BX
+-        DFB  BK-1           ;A
+-        DFB  POPD-1         ;CX
+-        DFB  RS-1           ;B
+-        DFB  CPR-1          ;DX
+-        DFB  BS-1           ;C
+-        DFB  INR-1          ;EX
+-        DFB  NUL-1          ;D
+-        DFB  DCR-1          ;FX
+-        DFB  NUL-1          ;E
+-        DFB  NUL-1          ;UNUSED
+-        DFB  NUL-1          ;F
+-
+-* FOLLOWING CODE MUST BE
+-* CONTAINED ON A SINGLE PAGE!
++OPTBL   .byt <(SET-1)          ;1X
++BRTBL   .byt <(RTN-1)          ;0
++        .byt <(LD-1)           ;2X
++        .byt <(BR-1)           ;1
++        .byt <(ST-1)           ;3X
++        .byt <(BNC-1)          ;2
++        .byt <(LDAT-1)         ;4X
++        .byt <(BC-1)           ;3
++        .byt <(STAT-1)         ;5X
++        .byt <(BP-1)           ;4
++        .byt <(LDDAT-1)        ;6X
++        .byt <(BM-1)           ;5
++        .byt <(STDAT-1)        ;7X
++        .byt <(BZ-1)           ;6
++        .byt <(POP-1)          ;8X
++        .byt <(BNZ-1)          ;7
++        .byt <(STPAT-1)        ;9X
++        .byt <(BM1-1)          ;8
++        .byt <(ADD-1)          ;AX
++        .byt <(BNM1-1)         ;9
++        .byt <(SUB-1)          ;BX
++        .byt <(BK-1)           ;A
++        .byt <(POPD-1)         ;CX
++        .byt <(RS-1)           ;B
++        .byt <(CPR-1)          ;DX
++        .byt <(BS-1)           ;C
++        .byt <(INR-1)          ;EX
++        .byt <(NUL-1)          ;D
++        .byt <(DCR-1)          ;FX
++        .byt <(NUL-1)          ;E
++        .byt <(NUL-1)          ;UNUSED
++        .byt <(NUL-1)          ;F
+ 
++; FOLLOWING CODE MUST BE
++; CONTAINED ON A SINGLE PAGE!
++; UNTIL END OF SINGLE PAGE COMMENT
+ SET     BPL  SETZ           ;ALWAYS TAKEN
+ LD      LDA  R0L,X
+-BK      EQU  *-1
++BK      =    LD+1
+         STA  R0L
+         LDA  R0H,X          ;MOVE RX TO R0
+         STA  R0H
+@@ -130,7 +126,7 @@
+         RTS
+ STAT    LDA  R0L
+ STAT2   STA  (R0L,X)        ;STORE BYTE INDIRECT
+-        LDY  $0
++        LDY  #$00
+ STAT3   STY  R14H           ;INDICATE R0 IS RESULT NEG
+ INR     INC  R0L,X
+         BNE  INR2           ;INCR RX
+@@ -138,10 +134,10 @@
+ INR2    RTS
+ LDAT    LDA  (R0L,X)        ;LOAD INDIRECT (RX)
+         STA  R0L            ;TO R0
+-        LDY  $0
++        LDY  #$00
+         STY  R0H            ;ZERO HIGH ORDER R0 BYTE
+         BEQ  STAT3          ;ALWAYS TAKEN
+-POP     LDY  $0             ;HIGH ORDER BYTE = 0
++POP     LDY  #$00           ;HIGH ORDER BYTE = 0
+         BEQ  POP2           ;ALWAYS TAKEN
+ POPD    JSR  DCR            ;DECR RX
+         LDA  (R0L,X)        ;POP HIGH ORDER BYTE @RX
+@@ -150,7 +146,7 @@
+         LDA  (R0L,X)        ;LOW ORDER BYTE
+         STA  R0L            ;TO R0
+         STY  R0H
+-POP3    LDY  $0             ;INDICATE R0 AS LAST RESULT REG
++POP3    LDY  #$00           ;INDICATE R0 AS LAST RESULT REG
+         STY  R14H
+         RTS
+ LDDAT   JSR  LDAT           ;LOW ORDER BYTE TO R0, INCR RX
+@@ -170,8 +166,8 @@
+         DEC  R0H,X
+ DCR2    DEC  R0L,X
+         RTS
+-SUB     LDY  $0             ;RESULT TO R0
+-        CPR  SEC            ;NOTE Y REG = 13*2 FOR CPR
++SUB     LDY  #$00           ;RESULT TO R0
++CPR     SEC                 ;NOTE Y REG = 13*2 FOR CPR
+         LDA  R0L
+         SBC  R0L,X
+         STA  R0L,Y          ;R0-RX TO RY
+@@ -179,7 +175,7 @@
+         SBC  R0H,X
+ SUB2    STA  R0H,Y
+         TYA                 ;LAST RESULT REG*2
+-        ADC  $0             ;CARRY TO LSB
++        ADC  #$00           ;CARRY TO LSB
+         STA  R14H
+         RTS
+ ADD     LDA  R0L
+@@ -187,7 +183,7 @@
+         STA  R0L            ;R0+RX TO R0
+         LDA  R0H
+         ADC  R0H,X
+-        LDY  $0             ;R0 FOR RESULT
++        LDY  #$00           ;R0 FOR RESULT
+         BEQ  SUB2           ;FINISH ADD
+ BS      LDA  R15L           ;NOTE X REG IS 12*2!
+         JSR  STAT2          ;PUSH LOW PC BYTE VIA R12
+@@ -232,17 +228,17 @@
+         TAX
+         LDA  R0L,X          ;CHECK BOTH BYTES
+         AND  R0H,X          ;FOR $FF (MINUS 1)
+-        EOR  $FF
++        EOR  #$FF
+         BEQ  BR1            ;BRANCH IF SO
+         RTS
+ BNM1    ASL                 ;DOUBLE RESULT-REG INDEX
+         TAX
+         LDA  R0L,X
+         AND  R0H,X          ;CHECK BOTH BYTES FOR NO $FF
+-        EOR  $FF
++        EOR  #$FF
+         BNE  BR1            ;BRANCH IF NOT MINUS 1
+ NUL     RTS
+-RS      LDX  $18            ;12*2 FOR R12 AS STACK POINTER
++RS      LDX  #$18           ;12*2 FOR R12 AS STACK POINTER
+         JSR  DCR            ;DECR STACK POINTER
+         LDA  (R0L,X)        ;POP HIGH RETURN ADDRESS TO PC
+         STA  R15H
+@@ -251,3 +247,40 @@
+         STA  R15L
+         RTS
+ RTN     JMP  RTNZ
++
++; END OF SINGLE PAGE
++
++;------------------------------
++; Save Registers and Status
++;------------------------------
++SAVE
++        STA  ACC
++        STX  XREG
++        STY  YREG
++        PHP
++        PLA
++        STA  STATUS
++        CLD
++        RTS
++
++;------------------------------
++; Restore Registers and Status
++;------------------------------
++RESTORE
++        LDA  STATUS
++        PHA
++        LDA  ACC
++        LDX  XREG
++        LDY  YREG
++        PLP
++        RTS
++
++;-------------------------------
++; Locations to store registers
++; and status
++;-------------------------------
++ACC     .byt 0
++XREG    .byt 0
++YREG    .byt 0
++STATUS  .byt 0
++.)
