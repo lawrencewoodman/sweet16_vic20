@@ -3,6 +3,7 @@ sweet16_vic20
 
 A port of Apple's Sweet 16 pseudo machine interpreter, written by Steve Wozniak, over to the Commodore VIC-20.  This code creates a 16-bit virtual machine in around 300 bytes.  The port is written for the [XA](https://www.floodgap.com/retrotech/xa/) assembler.
 
+This patch was written as part of an article: [Sweet 16 (The 6502 Dream Machine) Ported to the VIC-20](https://techtinkering.com/articles/sweet-16-the-6502-dream-machine-ported-to-the-vic-20/).
 
 The original Sweet 16 source code has been published a number of times including in [Byte Magazine Volume 02 Number 11 - November 1977](https://archive.org/details/byte-magazine-1977-11-rescan/page/n151/mode/2up).  In this article Steve Wozniak encourages users to modify Sweet 16 and even to port it to other processors, so hopefully he won't mind its being ported to the Vic.  However, despite this and the fact that the code is widely available, it is still probably under copyright and therefore the port relies on patching the original source code rather than supplying a complete version.
 
